@@ -97,7 +97,8 @@ public class WebDriverSchedule {
     }
 
     public static WebDriver getFirefox(){
-        System.setProperty("webdriver.firefox.bin", "/webdriver/geckodriver.exe");
+        System.setProperty("webdriver.firefox.bin", "D:\\soft\\Mozilla Firefox\\firefox.exe");
+        System.setProperty("webdriver.gecko.driver", "/webdriver/geckodriver.exe");
         WebDriver webDriver = new FirefoxDriver();
         return webDriver;
     }

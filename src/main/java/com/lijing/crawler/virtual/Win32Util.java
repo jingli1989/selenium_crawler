@@ -72,10 +72,13 @@ public class Win32Util{
         USER32EXT.SwitchToThisWindow(hwnd, true);
         USER32EXT.SetFocus(hwnd);
         for(int[] keys : keyCombination) {
+
             for(int i = 0; i < keys.length; i++) {
+                System.out.println(keys[i]);
                 USER32EXT.keybd_event((byte) keys[i], (byte) 0, KEYEVENTF_KEYDOWN, 0); // key down
             }
             for(int i = keys.length - 1; i >= 0; i--) {
+                System.out.println(keys[i]);
                 USER32EXT.keybd_event((byte) keys[i], (byte) 0, KEYEVENTF_KEYUP, 0); // key up
             }
         }
@@ -169,9 +172,10 @@ public class Win32Util{
     }
 
     public static void main(String[] args) {
-        String password = "your password";
-        HWND alipayEdit = findHandle("Chrome_RenderWidgetHostHWND", "Edit"); //Chrome浏览器，使用Spy++可以抓取句柄的参数
+        String password = "1234";
+        HWND alipayEdit = findHandle("Afx:00400000:8:00010003:00000000:000110C7", "AfxFrameOrView90su"); //Chrome浏览器，使用Spy++可以抓取句柄的参数
         System.out.println("获取支付宝密码控件失败。"+alipayEdit);
+        int[][] ints = new int[][]{{49},{50},{60},{70}};
         boolean isSuccess = Win32Util.simulateCharInput(alipayEdit, password);
         System.out.println("输入结果:{}"+isSuccess);
 //        assertThat("输入支付宝密码["+ password +"]失败。", isSuccess,  is(true));

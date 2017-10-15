@@ -4,15 +4,16 @@ import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.lijing.crawler.browser.WebDriverSchedule;
 import com.lijing.crawler.utils.CookieUtils;
-import com.lijing.crawler.utils.SendKeyUtils;
 import com.lijing.crawler.virtual.utils.VirtualKeyBoard;
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Cookie;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.apache.commons.io.FileUtils;
+import org.openqa.selenium.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -24,12 +25,16 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class LoginService {
 
-    private WebDriverSchedule schedule;
+    private WebDriverSchedule schedule = new WebDriverSchedule();
+
+    /** 验证码打码服务 */
+    @Autowired
+    private CodeCheckService codeCheckService;
 
     public void login(String username,String password){
 //        WebDriver webDriver = schedule.allotWebDriver();
-        WebDriver webDriver = WebDriverSchedule.getChrome();
-
+        WebDriver webDriver = WebDriverSchedule.getFirefox();
+        codeCheckService = new CodeCheckService();
         try {
             // 1.开始登陆
             log.info("==>0.[{}]用户正常认证开始.....");
@@ -43,42 +48,66 @@ public class LoginService {
             phoneNo.sendKeys(username);
 
 
-            Thread.sleep(1000L);
-            WebElement passwordEle = webDriver.findElement(By.id("_ocx_password6"));
-            passwordEle.click();
-            passwordEle.sendKeys(password);
-            SendKeyUtils.sendPassword(password);
+//            Thread.sleep(1000L);
 
 
             WebElement codeImg = webDriver.findElement(By.id( "codeImg"));
             String imageStr = codeImg.getAttribute("src");
             log.info("图片地址:{}",imageStr);
 
+            // Get entire page screenshot
+            File screenshot = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
+            BufferedImage fullImg = ImageIO.read(screenshot);
+
+            Point point = codeImg.getLocation();
+
+            int eleWidth = codeImg.getSize().getWidth();
+            int eleHeight = codeImg.getSize().getHeight();
+
+            BufferedImage eleScreenshot= fullImg.getSubimage(point.getX(), point.getY(),
+                    eleWidth, eleHeight);
+            ImageIO.write(eleScreenshot, "png", screenshot);
+
+            String verifyCode = codeCheckService.getVerifyCode(CodeCheckService.getBase64(screenshot));
+//            String verifyCode = "4567";
+
             Thread.sleep(1000L);
             WebElement codeEle = webDriver.findElement(By.id("codeVcode"));
-            codeEle.click();
-            codeEle.sendKeys("1234");
+//            codeEle.click();
 
+            codeEle.sendKeys(verifyCode);
+//                        ((JavascriptExecutor)webDriver).executeScript("document.getElementById(\"codeCheckFlag\").value ='true';");
+            Thread.sleep(2000L);
+            WebElement passwordEle = webDriver.findElement(By.id("_ocx_password6"));
+            passwordEle.click();
+////            passwordEle.sendKeys(password);
+////            SendKeyUtils.sendPassword(password);
+            VirtualKeyBoard.keyPress(password);
+//            passwordEle.click();
+            Thread.sleep(1000L);
+            WebElement loginBtn = webDriver.findElement(By.id("telLoginButtn"));
 
+            loginBtn.click();
 
             log.info("==>0.1调用浏览器登陆结束.");
-            WebClient webClient = initWebClient(null);
+//            WebClient webClient = initWebClient(null);
             log.info("==>0.2获取Cookie开始.....");
-            Set<Cookie> cookies = webDriver.manage().getCookies();
-            CookieUtils.copyCookies(webClient, cookies, ".abchina.com");
+//            Set<Cookie> cookies = webDriver.manage().getCookies();
+//            CookieUtils.copyCookies(webClient, cookies, ".abchina.com");
             log.info("==>0.2获取Cookie结束.....");
 
         } catch (Exception e) {
             log.error("==>0.[{}]用户正常认证出现异常:[{}]",  e);
         } finally {
-            //schedule.recoverWebDriver(context.getBankCode(), webDriver);
+            schedule.recoverWebDriver("1234", webDriver);
         }
     }
 
     public static void main(String[] args) {
         LoginService loginService = new LoginService();
         System.setProperty("webdriver.chrome.driver", "D:/webdriver/chromedriver.exe");
-        loginService.login("15000425356","123456");
+        loginService.login("15000425356","lijing892140");
+
     }
 
     /**
